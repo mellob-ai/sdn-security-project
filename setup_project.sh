@@ -129,13 +129,17 @@ echo "Why:  Mininet uses OVS to create virtual switches that the"
 echo "      SDN controller can program with flow rules."
 echo ""
 
-$PKG_INSTALL openvswitch
+if [ "$PKG_MANAGER" = "pacman" ]; then
+    $PKG_INSTALL openvswitch
+else
+    $PKG_INSTALL openvswitch-switch openvswitch-common
+fi
 
 # Start OVS service
 if command -v systemctl &> /dev/null; then
     systemctl enable --now ovs-vswitchd.service 2>/dev/null || true
     systemctl enable --now ovsdb-server.service 2>/dev/null || true
-    # Alternative Arch service names
+    systemctl enable --now openvswitch-switch.service 2>/dev/null || true
     systemctl enable --now openvswitch.service 2>/dev/null || true
 fi
 
@@ -157,45 +161,42 @@ echo "      computer. It simulates hosts, switches, and links."
 echo "Why:  We need it to create the test network for our demo."
 echo ""
 
-# Install required build dependencies
+# Install Mininet
 if [ "$PKG_MANAGER" = "pacman" ]; then
+    # Arch: build from source
     $PKG_INSTALL git base-devel net-tools iproute2 iputils iperf3 \
         python-setuptools help2man
+
+    MININET_DIR="/tmp/mininet_build"
+    if [ -d "$MININET_DIR" ]; then
+        rm -rf "$MININET_DIR"
+    fi
+
+    echo ""
+    print_step "4a" "Cloning Mininet from GitHub..."
+    git clone https://github.com/mininet/mininet.git "$MININET_DIR"
+    cd "$MININET_DIR"
+
+    git checkout -b local_build $(git tag -l | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1) 2>/dev/null || true
+
+    print_step "4b" "Installing Mininet Python package..."
+    python3 setup.py install 2>/dev/null || pip install . 2>/dev/null || python3 -m pip install . 2>/dev/null
 else
-    $PKG_INSTALL git build-essential net-tools iproute2 iputils-ping \
-        iperf3 python3-setuptools help2man
+    # Ubuntu/Debian: install from apt (much simpler)
+    $PKG_INSTALL mininet net-tools iproute2 iputils-ping iperf3
 fi
-
-# Clone and install Mininet from source
-MININET_DIR="/tmp/mininet_build"
-if [ -d "$MININET_DIR" ]; then
-    rm -rf "$MININET_DIR"
-fi
-
-echo ""
-print_step "4a" "Cloning Mininet from GitHub..."
-git clone https://github.com/mininet/mininet.git "$MININET_DIR"
-cd "$MININET_DIR"
-
-# Use latest stable tag
-git checkout -b local_build $(git tag -l | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1) 2>/dev/null || true
-
-print_step "4b" "Installing Mininet Python package..."
-cd "$MININET_DIR"
-python3 setup.py install 2>/dev/null || pip install . 2>/dev/null || python3 -m pip install . 2>/dev/null
 
 # Verify
 if python3 -c "from mininet.net import Mininet; print('Mininet OK')" 2>/dev/null; then
     print_ok "Mininet installed successfully"
 else
-    # Try alternative: install mininet via pip
-    print_warn "Source install may have issues, trying pip install..."
+    # Fallback: try pip install
+    print_warn "Trying pip install as fallback..."
     python3 -m pip install mininet --break-system-packages 2>/dev/null || true
     if python3 -c "from mininet.net import Mininet; print('Mininet OK')" 2>/dev/null; then
         print_ok "Mininet installed via pip"
     else
         print_fail "Mininet installation failed. You may need to install manually."
-        print_warn "Try: python3 -m pip install mininet --break-system-packages"
     fi
 fi
 
