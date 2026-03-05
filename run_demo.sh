@@ -81,10 +81,10 @@ else
     READY=false
 fi
 
-if python3 -c "from ryu.base import app_manager" 2>/dev/null; then
-    echo -e "  ${GREEN}✓${NC} Ryu Controller"
+if python3 -c "from ryu.base import app_manager" 2>/dev/null || python3 -c "from os_ken.base import app_manager" 2>/dev/null; then
+    echo -e "  ${GREEN}✓${NC} Ryu/os-ken Controller"
 else
-    echo -e "  ${RED}✗${NC} Ryu Controller - Run setup_project.sh first!"
+    echo -e "  ${RED}✗${NC} Ryu/os-ken Controller - Run setup_project.sh first!"
     READY=false
 fi
 
@@ -138,11 +138,13 @@ echo "    • Automatically block attackers"
 echo ""
 echo -e "${BLUE}  Starting controller in background...${NC}"
 
-# Determine ryu-manager command
+# Determine controller manager command
 if command -v ryu-manager &>/dev/null; then
     RYU_CMD="ryu-manager"
+elif command -v osken-manager &>/dev/null; then
+    RYU_CMD="osken-manager"
 else
-    RYU_CMD="python3 -m ryu.cmd.manager"
+    RYU_CMD="python3 -m os_ken.cmd.manager"
 fi
 
 # Start Ryu in background, log to file

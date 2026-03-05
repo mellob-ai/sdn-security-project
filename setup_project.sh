@@ -220,20 +220,20 @@ RYU_INSTALLED=false
 # First try: ryu-controller (maintained fork, Python 3.12+ compatible)
 print_step "5a" "Trying ryu-controller (modern fork)..."
 if python3 -m pip install ryu-controller --break-system-packages 2>/dev/null; then
-    if command -v ryu-manager &> /dev/null || python3 -c "from ryu.base import app_manager" 2>/dev/null; then
+    if python3 -c "from ryu.base import app_manager" 2>/dev/null; then
         print_ok "ryu-controller installed"
         RYU_INSTALLED=true
     fi
 fi
 
-# Second try: os-ken (official successor)
+# Second try: os-ken (official successor, uses os_ken namespace)
 if [ "$RYU_INSTALLED" = false ]; then
     print_step "5b" "Trying os-ken (official Ryu successor)..."
     if python3 -m pip install os-ken --break-system-packages 2>/dev/null; then
-        # os-ken uses the same API as ryu, just different package name
-        # Create compatibility shim
-        print_ok "os-ken installed"
-        RYU_INSTALLED=true
+        if python3 -c "from os_ken.base import app_manager" 2>/dev/null; then
+            print_ok "os-ken installed"
+            RYU_INSTALLED=true
+        fi
     fi
 fi
 
@@ -253,12 +253,14 @@ if [ "$RYU_INSTALLED" = false ]; then
     print_warn "Try: python3 -m venv venv && source venv/bin/activate && pip install ryu"
 fi
 
-# Verify ryu-manager command
+# Verify ryu-manager or osken-manager command
 if command -v ryu-manager &> /dev/null; then
     print_ok "ryu-manager command available"
+elif command -v osken-manager &> /dev/null; then
+    print_ok "osken-manager command available"
 else
-    print_warn "ryu-manager not in PATH. You may need to use:"
-    print_warn "python3 -m ryu.cmd.manager sdn_controller.py"
+    print_warn "ryu-manager/osken-manager not in PATH. You can use:"
+    print_warn "python3 -m os_ken.cmd.manager sdn_controller.py"
 fi
 
 # ==============================================================
@@ -305,7 +307,7 @@ check_component "Python 3          " "python3 --version" || ((ERRORS++))
 check_component "pip               " "python3 -m pip --version" || ((ERRORS++))
 check_component "Open vSwitch      " "ovs-vsctl --version" || ((ERRORS++))
 check_component "Mininet           " "python3 -c 'from mininet.net import Mininet'" || ((ERRORS++))
-check_component "Ryu Controller    " "python3 -c 'from ryu.base import app_manager'" || ((ERRORS++))
+check_component "Ryu Controller    " "python3 -c 'from ryu.base import app_manager' || python3 -c 'from os_ken.base import app_manager'" || ((ERRORS++))
 
 echo ""
 

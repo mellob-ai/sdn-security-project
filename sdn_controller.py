@@ -12,12 +12,21 @@ Usage:
     ryu-manager sdn_controller.py
 """
 
-from ryu.base import app_manager
-from ryu.controller import ofp_event
-from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER, set_ev_cls
-from ryu.ofproto import ofproto_v1_3
-from ryu.lib.packet import packet, ethernet, arp, ipv4, icmp
-from ryu.lib import hub
+# Compatibility: support both 'ryu' and 'os-ken' (its maintained successor)
+try:
+    from ryu.base import app_manager
+    from ryu.controller import ofp_event
+    from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER, set_ev_cls
+    from ryu.ofproto import ofproto_v1_3
+    from ryu.lib.packet import packet, ethernet, arp, ipv4, icmp
+    from ryu.lib import hub
+except ImportError:
+    from os_ken.base import app_manager
+    from os_ken.controller import ofp_event
+    from os_ken.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER, set_ev_cls
+    from os_ken.ofproto import ofproto_v1_3
+    from os_ken.lib.packet import packet, ethernet, arp, ipv4, icmp
+    from os_ken.lib import hub
 from datetime import datetime
 
 # ============================================================
